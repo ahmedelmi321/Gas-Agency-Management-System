@@ -1,0 +1,65 @@
+using GasAgencyAPI.Data;
+using GasAgencyAPI.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace GasAgencyAPI.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class CustomersController : ControllerBase
+    {
+        private readonly GasAgencyDbContext _context;
+
+        public CustomersController(GasAgencyDbContext context)
+        {
+            _context = context;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Customer>>> GetAll()
+        {
+            return await _context.Customers.ToListAsync();
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Customer>> GetById(int id)
+        {
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null) return NotFound();
+            return customer;
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Customer>> Create(Customer customer)
+        {
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetById), new { id = customer.CustomerID }, customer);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, Customer customer)
+        {
+            if (id != customer.CustomerID) return BadRequest();
+            _context.Entry(customer).State = EntityState.Modified;
+            try { await _context.SaveChangesAsync(); }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Customers.Any(c => c.CustomerID == id)) return NotFound();
+                throw;
+            }
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null) return NotFound();
+            _context.Customers.Remove(customer);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+    }
+}
